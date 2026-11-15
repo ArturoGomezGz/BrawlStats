@@ -145,6 +145,10 @@ export async function startFakeSupercell(port = 0): Promise<FakeSupercell> {
         ? send(200, player(m[1]))
         : send(404, { reason: 'notFound' });
     }
+    if (url === '/v1/brawlers') {
+      const names = ['SHELLY', 'COLT', 'BULL', 'BROCK', 'EL PRIMO', 'POCO', 'EDGAR', 'PIPER'];
+      return send(200, { items: names.map((name, i) => ({ id: 16000000 + i, name })) });
+    }
     if ((m = /^\/v1\/clubs\/#(\w+)$/.exec(url))) {
       return m[1] === 'YQ2' ? send(200, club()) : send(404, { reason: 'notFound' });
     }

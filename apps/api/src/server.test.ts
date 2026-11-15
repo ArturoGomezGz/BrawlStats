@@ -43,6 +43,52 @@ describe.skipIf(!url)('api', () => {
     expect(res.json()).toEqual({ status: 'ok', service: 'api' });
   });
 
+  it('GET /brawlers devuelve los nombres en mayúsculas y usa el respaldo si Supercell falla', async () => {
+    const ok = await app.inject('/brawlers');
+    expect(ok.json().brawlers).toContain('EL PRIMO');
+    await reset();
+    fake.forceStatus(503);
+    const fallback = await app.inject('/brawlers');
+    expect(fallback.statusCode).toBe(200);
+    expect(fallback.json().brawlers.length).toBeGreaterThan(50);
+  });
+
+  it('POST /draft/analyze responde ai_disabled sin analizador', async () => {
+    const res = await app.inject({ method: 'POST', url: '/draft/analyze', payload: {} });
+    expect(res.statusCode).toBe(503);
+    expect(res.json()).toMatchObject({ error: 'ai_disabled' });
+  });
+
+  it('POST /draft/analyze valida el draft y manda los candidatos a la IA', async () => {
+    const calls: string[][] = [];
+    const withAi = buildServer(
+      services,
+      {},
+      {
+        analyzer: {
+          analyze: async (_state, candidates) => {
+            calls.push(candidates.map((c) => c.brawler));
+            return { summary: 'ok', ranking: [] };
+          },
+        },
+      },
+    );
+    const bad = await withAi.inject({
+      method: 'POST',
+      url: '/draft/analyze',
+      payload: { state: 1 },
+    });
+    expect(bad.statusCode).toBe(400);
+    const res = await withAi.inject({
+      method: 'POST',
+      url: '/draft/analyze',
+      payload: { state: { mode: 'gemGrab', map: '', firstTeam: 'A', actions: [] } },
+    });
+    expect(res.json()).toEqual({ summary: 'ok', ranking: [] });
+    expect(calls[0]!.length).toBeGreaterThan(0);
+    await withAi.close();
+  });
+
   it('devuelve el jugador y lo marca como no seguido', async () => {
     const res = await app.inject('/players/2pp');
     expect(res.statusCode).toBe(200);

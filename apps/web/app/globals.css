@@ -275,3 +275,165 @@ svg .loss,
   font-size: 0.75rem;
   color: var(--muted);
 }
+
+/* Simulador de draft */
+.sim {
+  margin-top: 24px;
+}
+.config {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.config label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+select {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #34375a;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1rem;
+}
+.pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 16px;
+}
+.pool input {
+  min-width: 240px;
+}
+button.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--accent);
+  font-size: inherit;
+  font-weight: 400;
+  text-decoration: underline;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.turn {
+  margin: 24px 0 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--panel);
+  border-left: 4px solid var(--accent);
+  font-weight: 600;
+}
+.turn.done {
+  border-left-color: var(--ok);
+}
+.board {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.team {
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px 16px;
+  border: 1px solid transparent;
+}
+.team.active {
+  border-color: var(--accent);
+}
+.team h3 {
+  margin: 0 0 8px;
+  color: var(--text);
+}
+.slot-title {
+  margin: 8px 0 4px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.slots {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.slots li {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.slots li.filled.pick {
+  color: var(--text);
+  border-left: 3px solid var(--ok);
+}
+.slots li.filled.ban {
+  color: var(--danger);
+  text-decoration: line-through;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.suggestions,
+.advice ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.suggestions li,
+.advice li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.reasons {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+}
+.ai {
+  margin-top: 16px;
+}
+.advice {
+  margin-top: 12px;
+}
+.roster {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.roster button {
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.draft input {
+  width: 100%;
+}
+.draft .config input {
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .board {
+    grid-template-columns: 1fr;
+  }
+}

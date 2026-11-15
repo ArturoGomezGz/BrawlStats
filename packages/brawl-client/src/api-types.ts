@@ -18,6 +18,11 @@ export interface HistoryResponse {
   daily: { date: string; wins: number; losses: number }[];
 }
 
+export interface BrawlersResponse {
+  /** Nombres en mayúsculas, como los devuelve Supercell. */
+  brawlers: string[];
+}
+
 export interface ApiErrorBody {
   error:
     | 'invalid_tag'
@@ -26,6 +31,9 @@ export interface ApiErrorBody {
     | 'unauthorized'
     | 'unavailable'
     | 'bad_response'
+    | 'ai_disabled'
+    | 'ai_failed'
+    | 'invalid_request'
     | 'internal';
   message: string;
 }

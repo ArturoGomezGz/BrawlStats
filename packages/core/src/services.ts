@@ -5,6 +5,7 @@ import {
   normalizeTag,
   summarizeBattle,
   type BattlelogResponse,
+  type BrawlersResponse,
   type BrawlClient,
   type Club,
   type HistoryResponse,
@@ -16,6 +17,7 @@ const MINUTE = 60_000;
 const PLAYER_TTL = 1 * MINUTE;
 const BATTLELOG_TTL = 1 * MINUTE;
 const CLUB_TTL = 5 * MINUTE;
+const BRAWLERS_TTL = 24 * 60 * MINUTE;
 /** Un jugador seguido se sigue sincronizando mientras alguien lo haya consultado en este plazo. */
 const ACTIVE_DAYS = 14;
 
@@ -61,6 +63,11 @@ export function createServices(db: Db, client: BrawlClient) {
       const log = await loadBattlelog(tag);
       const list = log.items.map((item) => summarizeBattle(item, tag));
       return { battles: list, winRate: winRate(list.map((b) => b.result)) };
+    },
+
+    async getBrawlers(): Promise<BrawlersResponse> {
+      const list = await cached(db, 'brawlers', BRAWLERS_TTL, () => client.getBrawlers());
+      return { brawlers: list.items.map((b) => b.name.toUpperCase()).sort() };
     },
 
     async getClub(input: string): Promise<Club> {

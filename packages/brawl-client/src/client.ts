@@ -2,9 +2,11 @@ import type { z } from 'zod';
 import { normalizeTag } from './tag.js';
 import {
   battlelogSchema,
+  brawlersSchema,
   clubSchema,
   playerSchema,
   type Battlelog,
+  type BrawlersList,
   type Club,
   type Player,
 } from './schemas.js';
@@ -34,6 +36,7 @@ export interface BrawlClient {
   getPlayer(tag: string): Promise<Player>;
   getBattlelog(tag: string): Promise<Battlelog>;
   getClub(tag: string): Promise<Club>;
+  getBrawlers(): Promise<BrawlersList>;
 }
 
 export function createBrawlClient(options: BrawlClientOptions): BrawlClient {
@@ -85,5 +88,6 @@ export function createBrawlClient(options: BrawlClientOptions): BrawlClient {
     getPlayer: async (tag) => get(`/players/${encode(tag)}`, playerSchema),
     getBattlelog: async (tag) => get(`/players/${encode(tag)}/battlelog`, battlelogSchema),
     getClub: async (tag) => get(`/clubs/${encode(tag)}`, clubSchema),
+    getBrawlers: async () => get('/brawlers', brawlersSchema),
   };
 }
