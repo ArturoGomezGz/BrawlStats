@@ -437,3 +437,58 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* Flujo por pasos */
+.stepper {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 24px;
+  flex-wrap: wrap;
+}
+.stepper li {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+.stepper li.current {
+  background: var(--accent);
+  color: #1a1300;
+  font-weight: 700;
+}
+.modes {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.small {
+  font-size: 0.8125rem;
+  margin: 0;
+}
+.slots li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.slots li.selected {
+  outline: 1px solid var(--accent);
+}
+.slots li.filled.ban span {
+  text-decoration: line-through;
+}
+.picker {
+  margin-top: 16px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.picker h3 {
+  margin-top: 0;
+  color: var(--text);
+}

@@ -43,7 +43,11 @@ describe('createDraftAnalyzer', () => {
     }) as unknown as typeof fetch;
 
     const analyzer = createDraftAnalyzer({ apiKey: 'k', model: 'm', fetch: fakeFetch });
-    const advice = await analyzer.analyze(newDraft('gemGrab', 'Mina Rocosa'), candidates);
+    const advice = await analyzer.analyze(
+      newDraft('gemGrab', 'Mina Rocosa'),
+      { type: 'pick', team: 'A' },
+      candidates,
+    );
 
     expect(advice.ranking[0]?.brawler).toBe('AMBER');
     expect(seen!.headers['x-api-key']).toBe('k');
@@ -56,6 +60,7 @@ describe('createDraftAnalyzer', () => {
     await expect(
       createDraftAnalyzer({ apiKey: 'k', fetch: fakeFetch }).analyze(
         newDraft('gemGrab'),
+        { type: 'pick', team: 'A' },
         candidates,
       ),
     ).rejects.toThrow(AiError);

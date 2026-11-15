@@ -1,7 +1,7 @@
 import Fastify, { type FastifyServerOptions } from 'fastify';
 import { BrawlApiError, type ApiErrorBody, type BrawlErrorKind } from '@brawlstats/brawl-client';
 import type { Services } from '@brawlstats/core';
-import { KNOWN_BRAWLERS, suggest, type DraftState } from '@brawlstats/draft';
+import { KNOWN_BRAWLERS, suggestFor, type DraftState } from '@brawlstats/draft';
 import { AiError, analyzeBodySchema, type DraftAnalyzer } from './ai.js';
 
 const STATUS: Record<BrawlErrorKind, number> = {
@@ -69,12 +69,17 @@ export function buildServer(
     }
     const { brawlers } = await loadRoster();
     const state = parsed.data.state as DraftState;
-    const candidates = suggest(state, { roster: brawlers, pool: parsed.data.pool, limit: 10 });
+    const { step } = parsed.data;
+    const candidates = suggestFor(state, step, {
+      roster: brawlers,
+      pool: parsed.data.pool,
+      limit: 10,
+    });
     if (candidates.length === 0) {
       const body: ApiErrorBody = { error: 'invalid_request', message: 'El draft ya terminó' };
       return reply.status(400).send(body);
     }
-    return deps.analyzer.analyze(state, candidates);
+    return deps.analyzer.analyze(state, step, candidates);
   });
 
   type TagParams = { Params: { tag: string } };

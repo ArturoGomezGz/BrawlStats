@@ -1,11 +1,5 @@
 import { z } from 'zod';
-import {
-  TEMPLATES,
-  currentStep,
-  picksOf,
-  type DraftState,
-  type Suggestion,
-} from '@brawlstats/draft';
+import { TEMPLATES, picksOf, type DraftState, type Step, type Suggestion } from '@brawlstats/draft';
 
 export const draftStateSchema = z.object({
   mode: z.string().min(1).max(40),
@@ -24,7 +18,8 @@ export const draftStateSchema = z.object({
 
 export const analyzeBodySchema = z.object({
   state: draftStateSchema,
-  /** Equipo desde el que se pide la opinión; por defecto, el del turno actual. */
+  /** A qué equipo y qué tipo de jugada se le pide la sugerencia. */
+  step: z.object({ type: z.enum(['ban', 'pick']), team: z.enum(['A', 'B']) }),
   pool: z.array(z.string().max(40)).max(200).optional(),
 });
 
@@ -36,7 +31,7 @@ export interface AiAdvice {
 export class AiError extends Error {}
 
 export interface DraftAnalyzer {
-  analyze(state: DraftState, candidates: Suggestion[]): Promise<AiAdvice>;
+  analyze(state: DraftState, step: Step, candidates: Suggestion[]): Promise<AiAdvice>;
 }
 
 export interface AnalyzerOptions {
@@ -45,20 +40,19 @@ export interface AnalyzerOptions {
   fetch?: typeof fetch;
 }
 
-const SYSTEM = `Eres un coach competitivo de Brawl Stars. Recibes el estado de un draft (bans y picks por equipo, modo y mapa) y una lista de candidatos ya puntuados con plantillas del modo. Reordena los candidatos según tu criterio (sinergias, counters, riesgo de contrapick, composición) y explica brevemente cada elección en español. Solo puedes recomendar brawlers de la lista de candidatos. Responde únicamente con JSON: {"summary": string, "ranking": [{"brawler": string, "reason": string}]} con a lo sumo 5 elementos en ranking, summary de 1 o 2 frases y cada reason de una frase.`;
+const SYSTEM = `Eres un coach competitivo de Brawl Stars. Recibes el estado de un draft (modo, mapa, bans y picks de cada equipo, en cualquier orden) y qué jugada se pide (campo "pide": ban o pick de un equipo) y una lista de candidatos ya puntuados con plantillas del modo. Reordena los candidatos según tu criterio (sinergias, counters, riesgo de contrapick, composición) y explica brevemente cada elección en español. Solo puedes recomendar brawlers de la lista de candidatos. Responde únicamente con JSON: {"summary": string, "ranking": [{"brawler": string, "reason": string}]} con a lo sumo 3 elementos en ranking, summary de 1 o 2 frases y cada reason de una frase.`;
 
 export function createDraftAnalyzer(options: AnalyzerOptions): DraftAnalyzer {
   const doFetch = options.fetch ?? fetch;
   const model = options.model ?? 'claude-sonnet-5-5';
 
   return {
-    async analyze(state, candidates) {
-      const step = currentStep(state);
+    async analyze(state, step, candidates) {
       const template = TEMPLATES[state.mode];
       const prompt = JSON.stringify({
         modo: template?.label ?? state.mode,
         mapa: state.map || null,
-        turno: step ? { tipo: step.type === 'pick' ? 'pick' : 'ban', equipo: step.team } : null,
+        pide: { tipo: step.type, equipo: step.team },
         bans: state.actions
           .filter((a) => a.type === 'ban')
           .map((a) => ({ equipo: a.team, brawler: a.brawler })),
@@ -118,6 +112,6 @@ export function parseAdvice(text: string, allowed: Set<string>): AiAdvice {
   }
   const parsed = adviceSchema.safeParse(json);
   if (!parsed.success) throw new AiError('La respuesta de Claude no tiene el formato esperado');
-  const ranking = parsed.data.ranking.filter((r) => allowed.has(r.brawler)).slice(0, 5);
+  const ranking = parsed.data.ranking.filter((r) => allowed.has(r.brawler)).slice(0, 3);
   return { summary: parsed.data.summary, ranking };
 }

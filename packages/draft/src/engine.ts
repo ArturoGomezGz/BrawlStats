@@ -2,7 +2,7 @@ import { roleOf, ROLE_LABEL } from './data/roles.js';
 import { COMMON_COUNTERS, COMMON_SYNERGIES, DEFAULT_TIER, TEMPLATES } from './data/templates.js';
 import { DEFAULT_FORMAT, type DraftFormat } from './format.js';
 import { currentStep, picksOf, usedBrawlers } from './state.js';
-import type { DraftState, ModeTemplate, Role, Suggestion, Team } from './types.js';
+import type { DraftState, ModeTemplate, Role, Step, Suggestion, Team } from './types.js';
 
 export interface SuggestOptions {
   /** Todos los brawlers del juego (de Supercell o la lista de respaldo). */
@@ -161,9 +161,13 @@ function scoreBan(
 
 /** Sugerencias ordenadas para el paso actual. Vacío si el draft terminó. */
 export function suggest(state: DraftState, options: SuggestOptions): Suggestion[] {
+  const step = currentStep(state, options.format ?? DEFAULT_FORMAT);
+  return step ? suggestFor(state, step, options) : [];
+}
+
+/** Sugerencias para un paso cualquiera, sin exigir el orden del draft (modo libre). */
+export function suggestFor(state: DraftState, step: Step, options: SuggestOptions): Suggestion[] {
   const format = options.format ?? DEFAULT_FORMAT;
-  const step = currentStep(state, format);
-  if (!step) return [];
   const template = getTemplate(state.mode);
   const used = usedBrawlers(state);
   const available = options.roster.filter((b) => !used.has(b));

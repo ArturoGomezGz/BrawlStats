@@ -1,5 +1,5 @@
 import { buildSteps, DEFAULT_FORMAT, type DraftFormat } from './format.js';
-import type { DraftState, Step, Team } from './types.js';
+import type { DraftAction, DraftState, Step, Team } from './types.js';
 
 export function newDraft(mode: string, map = '', firstTeam: Team = 'A'): DraftState {
   return { mode, map, firstTeam, actions: [] };
@@ -32,4 +32,26 @@ export function applyAction(
 
 export function undoAction(state: DraftState): DraftState {
   return { ...state, actions: state.actions.slice(0, -1) };
+}
+
+/** Máximo de bans y de picks por equipo en el draft libre. */
+export const MAX_BANS_PER_TEAM = DEFAULT_FORMAT.bansPerTeam;
+export const MAX_PICKS_PER_TEAM = DEFAULT_FORMAT.pickPattern.reduce((a, b) => a + b, 0) / 2;
+
+/** Agrega un ban o pick sin exigir orden. Lanza si el brawler ya se usó o el equipo no tiene lugar. */
+export function addFree(state: DraftState, action: DraftAction): DraftState {
+  if (usedBrawlers(state).has(action.brawler)) {
+    throw new Error(`${action.brawler} ya fue elegido o baneado`);
+  }
+  const max = action.type === 'ban' ? MAX_BANS_PER_TEAM : MAX_PICKS_PER_TEAM;
+  const count = state.actions.filter(
+    (a) => a.type === action.type && a.team === action.team,
+  ).length;
+  if (count >= max) throw new Error('Ese equipo ya no tiene lugar');
+  return { ...state, actions: [...state.actions, action] };
+}
+
+/** Quita un brawler del draft, sin importar cuándo se agregó. */
+export function removeBrawler(state: DraftState, brawler: string): DraftState {
+  return { ...state, actions: state.actions.filter((a) => a.brawler !== brawler) };
 }
