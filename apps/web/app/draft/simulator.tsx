@@ -64,14 +64,21 @@ function Portrait({ image }: { image?: BrawlerImage }) {
   );
 }
 
+interface Followed {
+  tag: string;
+  name: string;
+}
+
 export function DraftSimulator({
   roster,
   aiEnabled,
+  followed,
   maps = [],
   images = {},
 }: {
   roster: string[];
   aiEnabled: boolean;
+  followed: Followed[];
   maps?: MapInfo[];
   images?: Record<string, BrawlerImage>;
 }) {
@@ -124,16 +131,16 @@ export function DraftSimulator({
     go('mode');
   }
 
-  async function loadPool() {
+  async function loadPool(playerTag: string) {
     setPoolError('');
-    const res = await fetch(`/draft/pool?tag=${encodeURIComponent(tag)}`);
+    const res = await fetch(`/draft/pool?tag=${encodeURIComponent(playerTag)}`);
     const body = (await res.json()) as { name?: string; brawlers?: string[]; message?: string };
     if (!res.ok || !body.brawlers) {
       setPool(null);
       setPoolError(body.message ?? 'No se pudo cargar ese jugador');
       return;
     }
-    setPool({ name: body.name ?? tag, brawlers: body.brawlers });
+    setPool({ name: body.name ?? playerTag, brawlers: body.brawlers });
   }
 
   /** Solo se llama a la IA cuando el usuario lo pide. */
@@ -152,12 +159,13 @@ export function DraftSimulator({
       const body = (await res.json()) as Advice & { message?: string };
       if (!res.ok) throw new Error(body.message ?? 'La IA no respondió');
       setAdvice(body);
-    } catch {
+    } catch (err) {
+      const reason = err instanceof Error && err.message !== 'disabled' ? err.message : '';
       // Sin IA (o si falla) se usan las plantillas para no dejar al usuario sin sugerencia.
       const top = suggestFor(state, step, { roster, pool: poolList, limit: 3 });
       setAdvice({
         summary: aiEnabled
-          ? 'La IA no respondió; estas son las sugerencias de las plantillas.'
+          ? `La IA no respondió${reason ? ` (${reason})` : ''}; estas son las sugerencias de las plantillas.`
           : 'La IA no está configurada; estas son las sugerencias de las plantillas.',
         ranking: top.map((s) => ({
           brawler: s.brawler,
@@ -384,14 +392,33 @@ export function DraftSimulator({
             </label>
           </div>
           <div className="pool">
+            {followed.length > 0 && (
+              <select
+                aria-label="Jugador que sigues"
+                value=""
+                onChange={(e) => e.target.value && loadPool(e.target.value)}
+              >
+                <option value="">Sugerir solo con los brawlers de…</option>
+                {followed.map((f) => (
+                  <option key={f.tag} value={f.tag}>
+                    {f.name} (#{f.tag})
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               value={tag}
-              placeholder="Tu tag (opcional) para sugerir solo con tus brawlers"
-              aria-label="Tu tag"
+              placeholder="O escribe otro tag"
+              aria-label="Otro tag"
               onChange={(e) => setTag(e.target.value)}
             />
-            <button type="button" className="secondary" onClick={loadPool} disabled={!tag.trim()}>
-              Cargar mis brawlers
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => loadPool(tag)}
+              disabled={!tag.trim()}
+            >
+              Cargar brawlers
             </button>
             {pool && (
               <span className="muted">

@@ -33,7 +33,10 @@ export function buildServer(
     }
     if (err instanceof AiError) {
       req.log.error(err);
-      const body: ApiErrorBody = { error: 'ai_failed', message: 'La IA no pudo responder ahora' };
+      const body: ApiErrorBody = {
+        error: 'ai_failed',
+        message: err.detail ? `Claude: ${err.detail}` : 'La IA no pudo responder ahora',
+      };
       return reply.status(502).send(body);
     }
     req.log.error(err);
@@ -83,6 +86,8 @@ export function buildServer(
   });
 
   type TagParams = { Params: { tag: string } };
+
+  app.get('/players/tracked', () => services.listTracked());
 
   app.get<TagParams>('/players/:tag', ({ params }) => services.getPlayer(params.tag));
   app.get<TagParams>('/players/:tag/battlelog', ({ params }) => services.getBattlelog(params.tag));

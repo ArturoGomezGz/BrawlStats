@@ -1,5 +1,5 @@
 import { KNOWN_BRAWLERS } from '@brawlstats/draft';
-import { getAiEnabled, getBrawlers } from '../../lib/api';
+import { getAiEnabled, getBrawlers, getTracked } from '../../lib/api';
 import { getBrawlerImages, getMaps } from '../../lib/brawlify';
 import { DraftSimulator } from './simulator';
 
@@ -7,9 +7,10 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Simulador de draft · Brawl Stats' };
 
 export default async function DraftPage() {
-  const [brawlers, aiEnabled, maps, images] = await Promise.all([
+  const [brawlers, aiEnabled, tracked, maps, images] = await Promise.all([
     getBrawlers(),
     getAiEnabled(),
+    getTracked(),
     getMaps(),
     getBrawlerImages(),
   ]);
@@ -26,7 +27,13 @@ export default async function DraftPage() {
         Elige modo y mapa, haz los bans y picks por turnos y recibe sugerencias. Las plantillas son
         una estimación del meta, no estadísticas medidas.
       </p>
-      <DraftSimulator roster={roster} aiEnabled={aiEnabled} maps={maps} images={images} />
+      <DraftSimulator
+        roster={roster}
+        aiEnabled={aiEnabled}
+        followed={tracked.ok ? tracked.data : []}
+        maps={maps}
+        images={images}
+      />
     </main>
   );
 }
