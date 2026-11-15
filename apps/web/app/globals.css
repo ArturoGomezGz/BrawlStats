@@ -513,3 +513,66 @@ button:disabled {
 .chip span {
   text-decoration: line-through;
 }
+
+/* Imágenes de brawlers y mapas */
+.portrait {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex: none;
+  background: var(--bg);
+}
+.slots li.filled {
+  gap: 8px;
+}
+.slots li.filled span,
+.chip span {
+  flex: 1;
+}
+.chip {
+  padding: 4px 10px 4px 4px;
+}
+.roster button.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 84px;
+  padding: 6px 4px;
+  font-size: 0.75rem;
+  text-align: center;
+}
+.roster button.tile .portrait {
+  width: 56px;
+  height: 56px;
+}
+.maps {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+.map-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 6px;
+  background: var(--panel);
+  color: var(--text);
+  border: 2px solid transparent;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+.map-card.selected {
+  border-color: var(--accent);
+}
+.map-card img {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 6px;
+}

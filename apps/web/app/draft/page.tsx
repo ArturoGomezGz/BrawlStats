@@ -1,15 +1,18 @@
 import { KNOWN_BRAWLERS } from '@brawlstats/draft';
 import { getAiEnabled, getBrawlers, getTracked } from '../../lib/api';
+import { getBrawlerImages, getMaps } from '../../lib/brawlify';
 import { DraftSimulator } from './simulator';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Simulador de draft · Brawl Stats' };
 
 export default async function DraftPage() {
-  const [brawlers, aiEnabled, tracked] = await Promise.all([
+  const [brawlers, aiEnabled, tracked, maps, images] = await Promise.all([
     getBrawlers(),
     getAiEnabled(),
     getTracked(),
+    getMaps(),
+    getBrawlerImages(),
   ]);
   const roster =
     brawlers.ok && brawlers.data.brawlers.length > 0 ? brawlers.data.brawlers : KNOWN_BRAWLERS;
@@ -28,6 +31,8 @@ export default async function DraftPage() {
         roster={roster}
         aiEnabled={aiEnabled}
         followed={tracked.ok ? tracked.data : []}
+        maps={maps}
+        images={images}
       />
     </main>
   );
