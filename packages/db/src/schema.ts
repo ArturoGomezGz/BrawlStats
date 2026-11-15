@@ -43,6 +43,19 @@ export const battles = pgTable(
   ],
 );
 
+/** Trofeos de un jugador seguido en cada sincronización, para la gráfica de trofeos en el tiempo. */
+export const playerSnapshots = pgTable(
+  'player_snapshots',
+  {
+    playerTag: text('player_tag')
+      .notNull()
+      .references(() => players.tag, { onDelete: 'cascade' }),
+    takenAt: timestamp('taken_at', { withTimezone: true }).notNull().defaultNow(),
+    trophies: integer('trophies').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.playerTag, t.takenAt] })],
+);
+
 /** Caché de respuestas de la API de Supercell para no repetir peticiones. */
 export const apiCache = pgTable('api_cache', {
   key: text('key').primaryKey(),
