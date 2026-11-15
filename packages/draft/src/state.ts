@@ -34,20 +34,24 @@ export function undoAction(state: DraftState): DraftState {
   return { ...state, actions: state.actions.slice(0, -1) };
 }
 
-/** Máximo de bans y de picks por equipo en el draft libre. */
-export const MAX_BANS_PER_TEAM = DEFAULT_FORMAT.bansPerTeam;
+/** Máximo de picks por equipo y de bans distintos en la partida (un ban repetido por ambos equipos cuenta una vez). */
 export const MAX_PICKS_PER_TEAM = DEFAULT_FORMAT.pickPattern.reduce((a, b) => a + b, 0) / 2;
+export const MAX_BANS = DEFAULT_FORMAT.bansPerTeam * 2;
 
-/** Agrega un ban o pick sin exigir orden. Lanza si el brawler ya se usó o el equipo no tiene lugar. */
+/** Bans de la partida, sin importar qué equipo los hizo. */
+export const bannedBrawlers = (state: DraftState): string[] =>
+  state.actions.filter((a) => a.type === 'ban').map((a) => a.brawler);
+
+/** Agrega un ban o pick sin exigir orden. Lanza si el brawler ya se usó o no queda lugar. */
 export function addFree(state: DraftState, action: DraftAction): DraftState {
   if (usedBrawlers(state).has(action.brawler)) {
     throw new Error(`${action.brawler} ya fue elegido o baneado`);
   }
-  const max = action.type === 'ban' ? MAX_BANS_PER_TEAM : MAX_PICKS_PER_TEAM;
-  const count = state.actions.filter(
-    (a) => a.type === action.type && a.team === action.team,
-  ).length;
-  if (count >= max) throw new Error('Ese equipo ya no tiene lugar');
+  const full =
+    action.type === 'ban'
+      ? bannedBrawlers(state).length >= MAX_BANS
+      : picksOf(state, action.team).length >= MAX_PICKS_PER_TEAM;
+  if (full) throw new Error('Ya no hay lugar');
   return { ...state, actions: [...state.actions, action] };
 }
 
