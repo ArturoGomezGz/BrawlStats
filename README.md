@@ -36,11 +36,11 @@ Para cambiar el esquema: edita `packages/db/src/schema.ts` y corre `pnpm --filte
 
 ## Despliegue en Railway
 
-Un proyecto con los servicios `web`, `api` y `Postgres`, y los entornos `testing` y `production`. Cada servicio usa la raíz del repo (para ver los paquetes compartidos) y su propio archivo de configuración:
+Proyecto **Brawl Stats** en Railway con los servicios `web`, `api` y `Postgres`. Cada servicio construye desde la raíz del repo (para ver los paquetes compartidos) con estos ajustes:
 
-| Servicio | Config file path         | Variables                                                                          |
-| -------- | ------------------------ | ---------------------------------------------------------------------------------- |
-| `api`    | `/apps/api/railway.json` | `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `PORT=4000`, `BRAWL_API_TOKEN` (hito 2) |
-| `web`    | `/apps/web/railway.json` | `API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}`                     |
+| Servicio | Build command                            | Start command                         | Pre-deploy                                | Variables                                                      |
+| -------- | ---------------------------------------- | ------------------------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| `api`    | `pnpm --filter @brawlstats/api... build` | `pnpm --filter @brawlstats/api start` | `pnpm --filter @brawlstats/db db:migrate` | `DATABASE_URL=${{Postgres.DATABASE_URL}}`, `PORT=4000`         |
+| `web`    | `pnpm --filter @brawlstats/web... build` | `pnpm --filter @brawlstats/web start` | —                                         | `API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
 
-La `api` corre las migraciones antes de cada despliegue (`preDeployCommand`) y solo se expone por la red privada. La `web` tiene el dominio público. En el hito 2 se activan las IPs de salida fijas en la `api` para registrar la llave de Supercell.
+Ambos usan healthcheck en `/health` y watch paths a su carpeta de `apps/`, `packages/**` y `pnpm-lock.yaml`. La `api` solo se expone por la red privada; la `web` tiene el dominio público. En el hito 2 se activan las IPs de salida fijas en la `api` para registrar la llave de Supercell (`BRAWL_API_TOKEN`).
