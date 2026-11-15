@@ -55,6 +55,18 @@ describe('createDraftAnalyzer', () => {
     expect(seen!.body.messages[0]!.content).toContain('Mina Rocosa');
   });
 
+  it('incluye el mensaje de Claude en el error', async () => {
+    const fakeFetch = (async () =>
+      new Response(JSON.stringify({ error: { message: 'credit balance is too low' } }), {
+        status: 400,
+      })) as unknown as typeof fetch;
+    const err = await createDraftAnalyzer({ apiKey: 'k', fetch: fakeFetch })
+      .analyze(newDraft('gemGrab'), { type: 'pick', team: 'A' }, candidates)
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AiError);
+    expect((err as AiError).detail).toBe('credit balance is too low');
+  });
+
   it('convierte un error HTTP en AiError', async () => {
     const fakeFetch = (async () => new Response('', { status: 529 })) as unknown as typeof fetch;
     await expect(

@@ -10,6 +10,7 @@ import {
   type Club,
   type HistoryResponse,
   type PlayerResponse,
+  type TrackedPlayer,
 } from '@brawlstats/brawl-client';
 import { cached } from './cache.js';
 
@@ -68,6 +69,15 @@ export function createServices(db: Db, client: BrawlClient) {
     async getBrawlers(): Promise<BrawlersResponse> {
       const list = await cached(db, 'brawlers', BRAWLERS_TTL, () => client.getBrawlers());
       return { brawlers: list.items.map((b) => b.name.toUpperCase()).sort() };
+    },
+
+    /** Jugadores que se siguen, el consultado más recientemente primero. */
+    async listTracked(): Promise<TrackedPlayer[]> {
+      return db
+        .select({ tag: players.tag, name: players.name, trophies: players.trophies })
+        .from(players)
+        .where(eq(players.tracked, true))
+        .orderBy(desc(sql`coalesce(${players.lastViewedAt}, ${players.createdAt})`));
     },
 
     async getClub(input: string): Promise<Club> {
