@@ -17,6 +17,9 @@ export default async function Home({
         <input name="tag" placeholder="#2PP8QL0" aria-label="Tag del jugador" required />
         <button type="submit">Buscar</button>
       </form>
+      <p>
+        ¿Vas a jugar competitivo? Prueba el <a href="/draft">simulador de draft</a>.
+      </p>
       {error === 'tag' && (
         <p className="error">Ese tag no es válido. Revísalo en tu perfil del juego.</p>
       )}

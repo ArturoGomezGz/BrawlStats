@@ -1,6 +1,7 @@
 import type {
   ApiErrorBody,
   BattlelogResponse,
+  BrawlersResponse,
   Club,
   HistoryResponse,
   PlayerResponse,
@@ -38,6 +39,18 @@ export const getClub = (tag: string) => request<Club>(`/clubs/${tag}`);
 export const setFollow = (tag: string, follow: boolean) =>
   request<{ tracked: boolean }>(`/players/${tag}/follow`, { method: follow ? 'PUT' : 'DELETE' });
 
+export const getBrawlers = () => request<BrawlersResponse>('/brawlers');
+export const getAiEnabled = async () => {
+  const res = await request<{ enabled: boolean }>('/health/ai');
+  return res.ok && res.data.enabled;
+};
+export const analyzeDraft = (body: unknown) =>
+  request<{ summary: string; ranking: { brawler: string; reason: string }[] }>('/draft/analyze', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
 export async function getApiHealth(): Promise<'ok' | 'error'> {
   const res = await request<{ status: string }>('/health');
   return res.ok ? 'ok' : 'error';
@@ -50,6 +63,10 @@ export function errorText(error: ApiErrorBody['error']): string {
       return 'Ese tag no es válido. Revísalo en tu perfil del juego.';
     case 'not_found':
       return 'No encontramos nada con ese tag.';
+    case 'ai_disabled':
+      return 'La IA no está configurada en este servidor.';
+    case 'ai_failed':
+      return 'La IA no pudo responder ahora. Intenta de nuevo.';
     case 'rate_limited':
       return 'Supercell está limitando las consultas. Intenta de nuevo en un minuto.';
     default:

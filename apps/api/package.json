@@ -14,7 +14,9 @@
     "@brawlstats/brawl-client": "workspace:*",
     "@brawlstats/core": "workspace:*",
     "@brawlstats/db": "workspace:*",
-    "fastify": "^5.12.8"
+    "@brawlstats/draft": "workspace:*",
+    "fastify": "^5.12.8",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -96,3 +96,8 @@ export type Player = z.infer<typeof playerSchema>;
 export type BattleItem = z.infer<typeof battleItemSchema>;
 export type Battlelog = z.infer<typeof battlelogSchema>;
 export type Club = z.infer<typeof clubSchema>;
+
+export const brawlersSchema = z
+  .object({ items: z.array(z.object({ id: z.number(), name: z.string() }).passthrough()) })
+  .passthrough();
+export type BrawlersList = z.infer<typeof brawlersSchema>;
