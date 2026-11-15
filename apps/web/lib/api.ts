@@ -5,6 +5,7 @@ import type {
   Club,
   HistoryResponse,
   PlayerResponse,
+  TrackedPlayer,
 } from '@brawlstats/brawl-client';
 
 const API_URL = process.env.API_URL ?? 'http://localhost:4000';
@@ -39,6 +40,7 @@ export const getClub = (tag: string) => request<Club>(`/clubs/${tag}`);
 export const setFollow = (tag: string, follow: boolean) =>
   request<{ tracked: boolean }>(`/players/${tag}/follow`, { method: follow ? 'PUT' : 'DELETE' });
 
+export const getTracked = () => request<TrackedPlayer[]>('/players/tracked');
 export const getBrawlers = () => request<BrawlersResponse>('/brawlers');
 export const getAiEnabled = async () => {
   const res = await request<{ enabled: boolean }>('/health/ai');

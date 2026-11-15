@@ -43,6 +43,16 @@ describe.skipIf(!url)('api', () => {
     expect(res.json()).toEqual({ status: 'ok', service: 'api' });
   });
 
+  it('GET /players/tracked lista solo a los seguidos', async () => {
+    await app.inject('/players/2PP');
+    await app.inject('/players/8Q0');
+    expect((await app.inject('/players/tracked')).json()).toEqual([]);
+    await app.inject({ method: 'PUT', url: '/players/2PP/follow' });
+    expect((await app.inject('/players/tracked')).json()).toEqual([
+      { tag: '2PP', name: 'Ana', trophies: expect.any(Number) },
+    ]);
+  });
+
   it('GET /brawlers devuelve los nombres en mayúsculas y usa el respaldo si Supercell falla', async () => {
     const ok = await app.inject('/brawlers');
     expect(ok.json().brawlers).toContain('EL PRIMO');

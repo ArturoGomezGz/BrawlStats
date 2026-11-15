@@ -23,6 +23,12 @@ export interface BrawlersResponse {
   brawlers: string[];
 }
 
+export interface TrackedPlayer {
+  tag: string;
+  name: string;
+  trophies: number;
+}
+
 export interface ApiErrorBody {
   error:
     | 'invalid_tag'

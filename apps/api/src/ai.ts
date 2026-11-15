@@ -28,7 +28,15 @@ export interface AiAdvice {
   ranking: { brawler: string; reason: string }[];
 }
 
-export class AiError extends Error {}
+export class AiError extends Error {
+  /** Texto corto con el motivo, apto para mostrar al usuario. */
+  constructor(
+    message: string,
+    readonly detail?: string,
+  ) {
+    super(message);
+  }
+}
 
 export interface DraftAnalyzer {
   analyze(state: DraftState, step: Step, candidates: Suggestion[]): Promise<AiAdvice>;
@@ -83,13 +91,26 @@ export function createDraftAnalyzer(options: AnalyzerOptions): DraftAnalyzer {
       } catch (err) {
         throw new AiError(`No se pudo contactar a Claude: ${String(err)}`);
       }
-      if (!res.ok) throw new AiError(`Claude respondió ${res.status}`);
+      if (!res.ok) {
+        const detail = await claudeErrorMessage(res);
+        throw new AiError(`Claude respondió ${res.status}: ${detail}`, detail);
+      }
 
       const body = (await res.json()) as { content?: { type: string; text?: string }[] };
       const text = body.content?.find((c) => c.type === 'text')?.text ?? '';
       return parseAdvice(text, new Set(candidates.map((c) => c.brawler)));
     },
   };
+}
+
+/** Mensaje de error de la API de Claude (por ejemplo, saldo insuficiente o modelo inválido). */
+async function claudeErrorMessage(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { error?: { message?: string } };
+    return (body.error?.message ?? 'sin detalle').slice(0, 200);
+  } catch {
+    return 'sin detalle';
+  }
 }
 
 const adviceSchema = z.object({
