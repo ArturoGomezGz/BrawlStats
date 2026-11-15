@@ -87,7 +87,7 @@ export const TEMPLATES: Record<string, ModeTemplate> = {
     ],
     counters: [],
     maps: {
-      'Mina Rocosa': {
+      'Hard Rock Mine': {
         note: 'Mapa con muchos arbustos: el control de zona vale oro',
         adjust: { SANDY: 0.5, AMBER: 0.5 },
       },

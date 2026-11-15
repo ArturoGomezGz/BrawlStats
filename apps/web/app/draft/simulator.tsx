@@ -16,6 +16,7 @@ import {
   type StepType,
   type Team,
 } from '@brawlstats/draft';
+import type { BrawlerImage, MapInfo } from '../../lib/brawlify';
 
 interface Advice {
   summary: string;
@@ -44,7 +45,36 @@ interface Target {
   team: Team;
 }
 
-export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnabled: boolean }) {
+function Portrait({ image }: { image?: BrawlerImage }) {
+  if (!image) return null;
+  return (
+    <img
+      className="portrait"
+      src={image.src}
+      alt=""
+      loading="lazy"
+      width={40}
+      height={40}
+      onError={(e) => {
+        const img = e.currentTarget;
+        if (image.fallback && img.src !== image.fallback) img.src = image.fallback;
+        else img.style.visibility = 'hidden';
+      }}
+    />
+  );
+}
+
+export function DraftSimulator({
+  roster,
+  aiEnabled,
+  maps = [],
+  images = {},
+}: {
+  roster: string[];
+  aiEnabled: boolean;
+  maps?: MapInfo[];
+  images?: Record<string, BrawlerImage>;
+}) {
   const [view, setView] = useState<View>('mode');
   const [state, setState] = useState<DraftState>(() => newDraft(MODES[0]![0]));
   const [target, setTarget] = useState<Target | null>(null);
@@ -58,7 +88,12 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
   const [error, setError] = useState('');
 
   const template = TEMPLATES[state.mode];
-  const knownMaps = Object.keys(template?.maps ?? {});
+  const modeMaps: MapInfo[] = [
+    ...maps.filter((m) => m.mode === state.mode),
+    ...Object.keys(template?.maps ?? {})
+      .filter((n) => !maps.some((m) => m.mode === state.mode && m.name === n))
+      .map((name) => ({ name, mode: state.mode })),
+  ];
   const used = usedBrawlers(state);
   const myPicks = picksOf(state, myTeam).length;
 
@@ -145,6 +180,7 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
           if (brawler) {
             return (
               <li key={i} className={`filled ${type}`}>
+                <Portrait image={images[brawler]} />
                 <span>{titleCase(brawler)}</span>
                 <button type="button" className="link" onClick={() => remove(brawler)}>
                   quitar
@@ -192,6 +228,7 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
         {banned.length === 0 && <li className="muted small">Ninguno</li>}
         {banned.map((b) => (
           <li key={b} className="chip">
+            <Portrait image={images[b]} />
             <span>{titleCase(b)}</span>
             {editable && (
               <button type="button" className="link" onClick={() => remove(b)}>
@@ -225,8 +262,9 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
           )
           .map((b) => (
             <li key={b}>
-              <button type="button" className="secondary" onClick={() => add(b)}>
-                {titleCase(b)}
+              <button type="button" className="secondary tile" onClick={() => add(b)}>
+                <Portrait image={images[b]} />
+                <span>{titleCase(b)}</span>
               </button>
             </li>
           ))}
@@ -288,16 +326,17 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
       {view === 'map' && (
         <section>
           <h2>¿En qué mapa? ({template?.label})</h2>
-          {knownMaps.length > 0 && (
-            <ul className="modes">
-              {knownMaps.map((m) => (
-                <li key={m}>
+          {modeMaps.length > 0 && (
+            <ul className="maps">
+              {modeMaps.map((m) => (
+                <li key={m.name}>
                   <button
                     type="button"
-                    className={state.map === m ? '' : 'secondary'}
-                    onClick={() => setState((s) => ({ ...s, map: m }))}
+                    className={`map-card ${state.map === m.name ? 'selected' : ''}`}
+                    onClick={() => setState((s) => ({ ...s, map: m.name }))}
                   >
-                    {m}
+                    {m.image && <img src={m.image} alt="" loading="lazy" />}
+                    <span>{m.name}</span>
                   </button>
                 </li>
               ))}
@@ -305,7 +344,7 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
           )}
           <input
             value={state.map}
-            placeholder="Escribe el nombre del mapa (opcional)"
+            placeholder="¿No aparece? Escribe el nombre del mapa (opcional)"
             aria-label="Mapa"
             onChange={(e) => setState((s) => ({ ...s, map: e.target.value }))}
           />
