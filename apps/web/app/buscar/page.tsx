@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { normalizeTag } from '../../lib/tag';
+import { normalizeTag } from '@brawlstats/brawl-client/tag';
 
 export default async function Buscar({
   searchParams,

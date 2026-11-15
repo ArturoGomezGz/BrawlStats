@@ -1,0 +1,266 @@
+{
+  "id": "b370a818-f5ed-4b12-8cfe-09b9629c45e7",
+  "prevId": "68d609ea-13bb-4379-a65a-fba0717d8d28",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.api_cache": {
+      "name": "api_cache",
+      "schema": "",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "body": {
+          "name": "body",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.battles": {
+      "name": "battles",
+      "schema": "",
+      "columns": {
+        "player_tag": {
+          "name": "player_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "battle_time": {
+          "name": "battle_time",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mode": {
+          "name": "mode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map": {
+          "name": "map",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brawler": {
+          "name": "brawler",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "result": {
+          "name": "result",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trophy_change": {
+          "name": "trophy_change",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "raw": {
+          "name": "raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "battles_player_time_idx": {
+          "name": "battles_player_time_idx",
+          "columns": [
+            {
+              "expression": "player_tag",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "\"battle_time\" desc",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "battles_player_tag_players_tag_fk": {
+          "name": "battles_player_tag_players_tag_fk",
+          "tableFrom": "battles",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_tag"
+          ],
+          "columnsTo": [
+            "tag"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "battles_player_tag_battle_time_pk": {
+          "name": "battles_player_tag_battle_time_pk",
+          "columns": [
+            "player_tag",
+            "battle_time"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.player_snapshots": {
+      "name": "player_snapshots",
+      "schema": "",
+      "columns": {
+        "player_tag": {
+          "name": "player_tag",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "taken_at": {
+          "name": "taken_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "trophies": {
+          "name": "trophies",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "player_snapshots_player_tag_players_tag_fk": {
+          "name": "player_snapshots_player_tag_players_tag_fk",
+          "tableFrom": "player_snapshots",
+          "tableTo": "players",
+          "columnsFrom": [
+            "player_tag"
+          ],
+          "columnsTo": [
+            "tag"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "player_snapshots_player_tag_taken_at_pk": {
+          "name": "player_snapshots_player_tag_taken_at_pk",
+          "columns": [
+            "player_tag",
+            "taken_at"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.players": {
+      "name": "players",
+      "schema": "",
+      "columns": {
+        "tag": {
+          "name": "tag",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trophies": {
+          "name": "trophies",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tracked": {
+          "name": "tracked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_viewed_at": {
+          "name": "last_viewed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

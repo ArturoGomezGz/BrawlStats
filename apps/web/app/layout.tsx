@@ -12,11 +12,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="es">
       <body>
         {children}
-        <main>
-          <footer>
-            Proyecto de fans. No está afiliado, patrocinado ni aprobado por Supercell.
-          </footer>
-        </main>
+        <footer className="site-footer">
+          Proyecto de fans. No está afiliado, patrocinado ni aprobado por Supercell.
+        </footer>
       </body>
     </html>
   );
