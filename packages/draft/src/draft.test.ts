@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addFree,
+  bannedBrawlers,
   applyAction,
   buildSteps,
   currentStep,
@@ -104,6 +105,21 @@ describe('draft libre', () => {
     s = addFree(s, { type: 'pick', team: 'A', brawler: 'MAX' });
     expect(() => addFree(s, { type: 'pick', team: 'A', brawler: 'EDGAR' })).toThrow('lugar');
     expect(picksOf(removeBrawler(s, 'BULL'), 'A')).toEqual(['POCO', 'MAX']);
+  });
+
+  it('los bans son compartidos y libres: hasta 6 distintos sin importar el equipo', () => {
+    let s = newDraft('gemGrab');
+    for (const b of ['COLT', 'BULL', 'POCO', 'MAX']) {
+      s = addFree(s, { type: 'ban', team: 'A', brawler: b });
+    }
+    s = addFree(s, { type: 'ban', team: 'B', brawler: 'SHELLY' });
+    s = addFree(s, { type: 'ban', team: 'B', brawler: 'PIPER' });
+    expect(bannedBrawlers(s)).toHaveLength(6);
+    expect(() => addFree(s, { type: 'ban', team: 'B', brawler: 'EDGAR' })).toThrow('lugar');
+    // Un brawler baneado por los dos equipos cuenta una sola vez.
+    expect(() =>
+      addFree(newDraft('gemGrab'), { type: 'ban', team: 'A', brawler: 'COLT' }),
+    ).not.toThrow();
   });
 
   it('sugiere para un equipo y tipo sin importar el turno', () => {

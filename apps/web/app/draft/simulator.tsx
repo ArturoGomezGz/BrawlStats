@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import {
-  MAX_BANS_PER_TEAM,
+  MAX_BANS,
   MAX_PICKS_PER_TEAM,
   TEMPLATES,
   addFree,
-  bansOf,
+  bannedBrawlers,
   newDraft,
   picksOf,
   removeBrawler,
@@ -63,8 +63,9 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
   const myPicks = picksOf(state, myTeam).length;
 
   function add(brawler: string) {
-    if (!target) return;
-    setState((s) => addFree(s, { ...target, brawler }));
+    const t: Target | null = view === 'bans' ? { type: 'ban', team: 'A' } : target;
+    if (!t) return;
+    setState((s) => addFree(s, { ...t, brawler }));
     setTarget(null);
     setFilter('');
     setAdvice(null);
@@ -135,8 +136,8 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
   }
 
   const slots = (team: Team, type: StepType) => {
-    const list = type === 'ban' ? bansOf(state, team) : picksOf(state, team);
-    const max = type === 'ban' ? MAX_BANS_PER_TEAM : MAX_PICKS_PER_TEAM;
+    const list = picksOf(state, team);
+    const max = MAX_PICKS_PER_TEAM;
     return (
       <ul className="slots">
         {Array.from({ length: max }, (_, i) => {
@@ -164,33 +165,51 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
     );
   };
 
-  const board = (type: StepType) => (
+  const banned = bannedBrawlers(state);
+
+  const board = () => (
     <div className="board">
       {TEAMS.map((team) => (
         <section key={team} className="team" aria-label={`Equipo ${team}`}>
           <h3>
             Equipo {team}
-            {view === 'picks' && team === myTeam ? ' (tú)' : ''}
+            {team === myTeam ? ' (tú)' : ''}
           </h3>
-          <p className="slot-title">{type === 'ban' ? 'Bans' : 'Picks'}</p>
-          {slots(team, type)}
-          {type === 'pick' && (
-            <>
-              <p className="slot-title">Bans</p>
-              <p className="muted small">
-                {bansOf(state, team).map(titleCase).join(', ') || 'Ninguno'}
-              </p>
-            </>
-          )}
+          <p className="slot-title">Picks</p>
+          {slots(team, 'pick')}
         </section>
       ))}
     </div>
   );
 
-  const picker = target && (
+  /** Bans compartidos: sin equipo ni orden, y uno repetido por ambos equipos cuenta una vez. */
+  const bansPanel = (editable: boolean) => (
+    <div className="bans">
+      <p className="slot-title">
+        Bans ({banned.length}/{MAX_BANS})
+      </p>
+      <ul className="chips">
+        {banned.length === 0 && <li className="muted small">Ninguno</li>}
+        {banned.map((b) => (
+          <li key={b} className="chip">
+            <span>{titleCase(b)}</span>
+            {editable && (
+              <button type="button" className="link" onClick={() => remove(b)}>
+                quitar
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  const pickerTarget: Target | null =
+    view === 'bans' ? (banned.length < MAX_BANS ? { type: 'ban', team: 'A' } : null) : target;
+  const picker = pickerTarget && (
     <div className="picker">
       <h3>
-        {target.type === 'ban' ? 'Ban' : 'Pick'} del equipo {target.team}
+        {pickerTarget.type === 'ban' ? 'Banear un brawler' : `Pick del equipo ${pickerTarget.team}`}
       </h3>
       <input
         value={filter}
@@ -300,8 +319,11 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
       {view === 'bans' && (
         <section>
           <h2>Bans de la partida</h2>
-          <p>Agrega los brawlers que se banearon en cada equipo, en cualquier orden.</p>
-          {board('ban')}
+          <p>
+            Agrega los brawlers baneados en la partida, en cualquier orden y sin importar qué equipo
+            los baneó. Si los dos equipos banearon el mismo, agrégalo una sola vez.
+          </p>
+          {bansPanel(true)}
           {picker}
           {nav('map', 'picks')}
         </section>
@@ -343,7 +365,8 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
             {poolError && <span className="error">{poolError}</span>}
           </div>
 
-          {board('pick')}
+          {bansPanel(false)}
+          {board()}
           {picker}
 
           <div className="ai">

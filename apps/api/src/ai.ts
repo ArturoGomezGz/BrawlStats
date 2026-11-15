@@ -53,9 +53,7 @@ export function createDraftAnalyzer(options: AnalyzerOptions): DraftAnalyzer {
         modo: template?.label ?? state.mode,
         mapa: state.map || null,
         pide: { tipo: step.type, equipo: step.team },
-        bans: state.actions
-          .filter((a) => a.type === 'ban')
-          .map((a) => ({ equipo: a.team, brawler: a.brawler })),
+        bans: state.actions.filter((a) => a.type === 'ban').map((a) => a.brawler),
         picksA: picksOf(state, 'A'),
         picksB: picksOf(state, 'B'),
         candidatos: candidates.map((c) => ({
