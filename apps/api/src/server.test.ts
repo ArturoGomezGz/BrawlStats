@@ -66,7 +66,7 @@ describe.skipIf(!url)('api', () => {
       {},
       {
         analyzer: {
-          analyze: async (_state, candidates) => {
+          analyze: async (_state, _step, candidates) => {
             calls.push(candidates.map((c) => c.brawler));
             return { summary: 'ok', ranking: [] };
           },
@@ -82,7 +82,10 @@ describe.skipIf(!url)('api', () => {
     const res = await withAi.inject({
       method: 'POST',
       url: '/draft/analyze',
-      payload: { state: { mode: 'gemGrab', map: '', firstTeam: 'A', actions: [] } },
+      payload: {
+        state: { mode: 'gemGrab', map: '', firstTeam: 'A', actions: [] },
+        step: { type: 'pick', team: 'A' },
+      },
     });
     expect(res.json()).toEqual({ summary: 'ok', ranking: [] });
     expect(calls[0]!.length).toBeGreaterThan(0);

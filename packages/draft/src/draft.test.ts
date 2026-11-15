@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addFree,
   applyAction,
   buildSteps,
   currentStep,
   KNOWN_BRAWLERS,
   newDraft,
   picksOf,
+  removeBrawler,
+  suggestFor,
   suggest,
   undoAction,
 } from './index.js';
@@ -88,5 +91,26 @@ describe('sugerencias', () => {
     for (let i = 0; i < 6; i++) s = applyAction(s, KNOWN_BRAWLERS[i]!);
     const list = suggest(s, { roster, pool: ['SHELLY', 'COLT'] });
     expect(list.map((x) => x.brawler).sort()).toEqual(['COLT', 'SHELLY']);
+  });
+});
+
+describe('draft libre', () => {
+  it('permite cualquier orden, limita por equipo y deja quitar', () => {
+    let s = newDraft('brawlBall');
+    s = addFree(s, { type: 'pick', team: 'B', brawler: 'PIPER' });
+    s = addFree(s, { type: 'pick', team: 'A', brawler: 'POCO' });
+    expect(() => addFree(s, { type: 'pick', team: 'A', brawler: 'POCO' })).toThrow();
+    s = addFree(s, { type: 'pick', team: 'A', brawler: 'BULL' });
+    s = addFree(s, { type: 'pick', team: 'A', brawler: 'MAX' });
+    expect(() => addFree(s, { type: 'pick', team: 'A', brawler: 'EDGAR' })).toThrow('lugar');
+    expect(picksOf(removeBrawler(s, 'BULL'), 'A')).toEqual(['POCO', 'MAX']);
+  });
+
+  it('sugiere para un equipo y tipo sin importar el turno', () => {
+    let s = newDraft('brawlBall');
+    s = addFree(s, { type: 'pick', team: 'B', brawler: 'PIPER' });
+    const list = suggestFor(s, { type: 'pick', team: 'A' }, { roster: KNOWN_BRAWLERS });
+    expect(list.length).toBeGreaterThan(0);
+    expect(list.map((x) => x.brawler)).not.toContain('PIPER');
   });
 });

@@ -27,9 +27,9 @@ packages/
 
 ## Simulador de draft (`/draft`)
 
-- El formato (3 bans por equipo alternados y picks 1-2-2-1) vive en `packages/draft/src/format.ts`.
-- Las sugerencias salen de las **plantillas** de `packages/draft/src/data/templates.ts` (niveles por modo, sinergias, counters, ajustes por mapa) y los roles de `data/roles.ts`. Son una estimación del meta: edítalas cuando cambie el juego. El motor corre en el navegador, sin IA ni red.
-- **Opinión de IA** (opcional): si el servicio `api` tiene `ANTHROPIC_API_KEY`, el botón manda el draft y los mejores candidatos a Claude, que los reordena y explica. Sin la llave el botón queda desactivado. `ANTHROPIC_MODEL` cambia el modelo.
+- Hasta 3 bans y 3 picks por equipo (`packages/draft/src/format.ts`); el orden es libre.
+- Las sugerencias salen de las **plantillas** de `packages/draft/src/data/templates.ts` (niveles por modo, sinergias, counters, ajustes por mapa) y los roles de `data/roles.ts`. Son una estimación del meta: edítalas cuando cambie el juego. El motor puntúa en el navegador, sin red.
+- El flujo es por vistas: modo, mapa, bans de la partida y picks de ambos equipos en cualquier orden. Nada se calcula solo: el botón **Sugerir con IA** manda el draft y los mejores candidatos a Claude (si el servicio `api` tiene `ANTHROPIC_API_KEY`), que elige y explica. Sin la llave, el botón muestra la sugerencia de las plantillas. `ANTHROPIC_MODEL` cambia el modelo.
 - La lista de brawlers viene de Supercell (`GET /brawlers`, caché de un día); si falla se usa la lista de las plantillas.
 
 ## Desarrollo local

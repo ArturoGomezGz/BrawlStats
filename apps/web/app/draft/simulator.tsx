@@ -1,69 +1,91 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
+  MAX_BANS_PER_TEAM,
+  MAX_PICKS_PER_TEAM,
   TEMPLATES,
-  applyAction,
+  addFree,
   bansOf,
-  currentStep,
   newDraft,
   picksOf,
-  suggest,
-  undoAction,
+  removeBrawler,
+  suggestFor,
   usedBrawlers,
+  type DraftState,
+  type StepType,
   type Team,
 } from '@brawlstats/draft';
 
-interface AiAdvice {
+interface Advice {
   summary: string;
   ranking: { brawler: string; reason: string }[];
+  /** true si salió de las plantillas porque la IA no está disponible. */
+  fallback?: boolean;
 }
 
-const SLOTS = 3;
+type View = 'mode' | 'map' | 'bans' | 'picks';
+const VIEWS: { id: View; label: string }[] = [
+  { id: 'mode', label: '1. Modo' },
+  { id: 'map', label: '2. Mapa' },
+  { id: 'bans', label: '3. Bans' },
+  { id: 'picks', label: '4. Picks' },
+];
 const MODES = Object.entries(TEMPLATES).map(([id, t]) => [id, t.label] as const);
+const TEAMS: Team[] = ['A', 'B'];
 
 const titleCase = (name: string) =>
   name
     .toLowerCase()
     .replace(/(^|[\s.-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
 
+interface Target {
+  type: StepType;
+  team: Team;
+}
+
 export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnabled: boolean }) {
-  const [state, setState] = useState(() => newDraft(MODES[0]![0]));
-  const [myTeam, setMyTeam] = useState<Team>('A');
+  const [view, setView] = useState<View>('mode');
+  const [state, setState] = useState<DraftState>(() => newDraft(MODES[0]![0]));
+  const [target, setTarget] = useState<Target | null>(null);
   const [filter, setFilter] = useState('');
+  const [myTeam, setMyTeam] = useState<Team>('A');
   const [tag, setTag] = useState('');
   const [pool, setPool] = useState<{ name: string; brawlers: string[] } | null>(null);
   const [poolError, setPoolError] = useState('');
-  const [advice, setAdvice] = useState<AiAdvice | null>(null);
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiError, setAiError] = useState('');
+  const [advice, setAdvice] = useState<Advice | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const step = currentStep(state);
+  const template = TEMPLATES[state.mode];
+  const knownMaps = Object.keys(template?.maps ?? {});
   const used = usedBrawlers(state);
-  const maps = Object.keys(TEMPLATES[state.mode]?.maps ?? {});
-  const mapNote = TEMPLATES[state.mode]?.maps[state.map]?.note;
+  const myPicks = picksOf(state, myTeam).length;
 
-  // El pool solo limita las sugerencias de los picks de mi equipo.
-  const activePool = step?.type === 'pick' && step.team === myTeam ? pool?.brawlers : undefined;
-  const suggestions = useMemo(
-    () => suggest(state, { roster, pool: activePool, limit: 10 }),
-    [state, roster, activePool],
-  );
-
-  const choices = roster.filter(
-    (b) => !used.has(b) && titleCase(b).toLowerCase().includes(filter.trim().toLowerCase()),
-  );
-
-  function choose(brawler: string) {
-    setState((s) => applyAction(s, brawler));
+  function add(brawler: string) {
+    if (!target) return;
+    setState((s) => addFree(s, { ...target, brawler }));
+    setTarget(null);
+    setFilter('');
     setAdvice(null);
-    setAiError('');
   }
 
-  function reset(patch: Partial<typeof state> = {}) {
-    setState((s) => ({ ...newDraft(s.mode, s.map, s.firstTeam), ...patch, actions: [] }));
+  function remove(brawler: string) {
+    setState((s) => removeBrawler(s, brawler));
     setAdvice(null);
-    setAiError('');
+  }
+
+  function go(next: View) {
+    setView(next);
+    setTarget(null);
+    setFilter('');
+  }
+
+  function restart() {
+    setState(newDraft(MODES[0]![0]));
+    setAdvice(null);
+    setError('');
+    go('mode');
   }
 
   async function loadPool() {
@@ -78,184 +100,267 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
     setPool({ name: body.name ?? tag, brawlers: body.brawlers });
   }
 
-  async function askAi() {
-    setAiBusy(true);
-    setAiError('');
+  /** Solo se llama a la IA cuando el usuario lo pide. */
+  async function suggest() {
+    setBusy(true);
+    setError('');
+    const step = { type: 'pick' as const, team: myTeam };
+    const poolList = pool?.brawlers;
     try {
+      if (!aiEnabled) throw new Error('disabled');
       const res = await fetch('/draft/ai', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ state, pool: activePool }),
+        body: JSON.stringify({ state, step, pool: poolList }),
       });
-      const body = (await res.json()) as AiAdvice & { message?: string };
+      const body = (await res.json()) as Advice & { message?: string };
       if (!res.ok) throw new Error(body.message ?? 'La IA no respondió');
       setAdvice(body);
-    } catch (err) {
-      setAdvice(null);
-      setAiError(err instanceof Error ? err.message : 'La IA no respondió');
+    } catch {
+      // Sin IA (o si falla) se usan las plantillas para no dejar al usuario sin sugerencia.
+      const top = suggestFor(state, step, { roster, pool: poolList, limit: 3 });
+      setAdvice({
+        summary: aiEnabled
+          ? 'La IA no respondió; estas son las sugerencias de las plantillas.'
+          : 'La IA no está configurada; estas son las sugerencias de las plantillas.',
+        ranking: top.map((s) => ({
+          brawler: s.brawler,
+          reason: s.reasons.join('. ') || 'Buen nivel en este modo',
+        })),
+        fallback: true,
+      });
     } finally {
-      setAiBusy(false);
+      setBusy(false);
     }
   }
 
-  const teamColumn = (team: Team) => {
-    const bans = bansOf(state, team);
-    const picks = picksOf(state, team);
-    const active = step?.team === team;
+  const slots = (team: Team, type: StepType) => {
+    const list = type === 'ban' ? bansOf(state, team) : picksOf(state, team);
+    const max = type === 'ban' ? MAX_BANS_PER_TEAM : MAX_PICKS_PER_TEAM;
     return (
-      <section className={`team${active ? ' active' : ''}`} aria-label={`Equipo ${team}`}>
-        <h3>
-          Equipo {team}
-          {team === myTeam ? ' (tú)' : ''}
-        </h3>
-        <p className="slot-title">Bans</p>
-        <ul className="slots">
-          {Array.from({ length: SLOTS }, (_, i) => (
-            <li key={i} className={`ban${bans[i] ? ' filled' : ''}`}>
-              {bans[i] ? titleCase(bans[i]!) : '—'}
+      <ul className="slots">
+        {Array.from({ length: max }, (_, i) => {
+          const brawler = list[i];
+          if (brawler) {
+            return (
+              <li key={i} className={`filled ${type}`}>
+                <span>{titleCase(brawler)}</span>
+                <button type="button" className="link" onClick={() => remove(brawler)}>
+                  quitar
+                </button>
+              </li>
+            );
+          }
+          const selected = target?.team === team && target.type === type;
+          return (
+            <li key={i} className={selected ? 'selected' : ''}>
+              <button type="button" className="link" onClick={() => setTarget({ team, type })}>
+                {selected ? 'Elige abajo…' : `+ Agregar ${type === 'ban' ? 'ban' : 'pick'}`}
+              </button>
             </li>
-          ))}
-        </ul>
-        <p className="slot-title">Picks</p>
-        <ul className="slots">
-          {Array.from({ length: SLOTS }, (_, i) => (
-            <li key={i} className={`pick${picks[i] ? ' filled' : ''}`}>
-              {picks[i] ? titleCase(picks[i]!) : '—'}
-            </li>
-          ))}
-        </ul>
-      </section>
+          );
+        })}
+      </ul>
     );
   };
 
+  const board = (type: StepType) => (
+    <div className="board">
+      {TEAMS.map((team) => (
+        <section key={team} className="team" aria-label={`Equipo ${team}`}>
+          <h3>
+            Equipo {team}
+            {view === 'picks' && team === myTeam ? ' (tú)' : ''}
+          </h3>
+          <p className="slot-title">{type === 'ban' ? 'Bans' : 'Picks'}</p>
+          {slots(team, type)}
+          {type === 'pick' && (
+            <>
+              <p className="slot-title">Bans</p>
+              <p className="muted small">
+                {bansOf(state, team).map(titleCase).join(', ') || 'Ninguno'}
+              </p>
+            </>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+
+  const picker = target && (
+    <div className="picker">
+      <h3>
+        {target.type === 'ban' ? 'Ban' : 'Pick'} del equipo {target.team}
+      </h3>
+      <input
+        value={filter}
+        autoFocus
+        placeholder="Buscar brawler"
+        aria-label="Buscar brawler"
+        onChange={(e) => setFilter(e.target.value)}
+      />
+      <ul className="roster">
+        {roster
+          .filter(
+            (b) => !used.has(b) && titleCase(b).toLowerCase().includes(filter.trim().toLowerCase()),
+          )
+          .map((b) => (
+            <li key={b}>
+              <button type="button" className="secondary" onClick={() => add(b)}>
+                {titleCase(b)}
+              </button>
+            </li>
+          ))}
+      </ul>
+    </div>
+  );
+
+  const nav = (back: View | null, next: View | null, nextLabel = 'Continuar') => (
+    <div className="actions">
+      {back && (
+        <button type="button" className="secondary" onClick={() => go(back)}>
+          Atrás
+        </button>
+      )}
+      {next && (
+        <button type="button" onClick={() => go(next)}>
+          {nextLabel}
+        </button>
+      )}
+      <button type="button" className="secondary" onClick={restart}>
+        Reiniciar
+      </button>
+    </div>
+  );
+
   return (
     <div className="sim">
-      <div className="config">
-        <label>
-          Modo
-          <select value={state.mode} onChange={(e) => reset({ mode: e.target.value, map: '' })}>
+      <ol className="stepper" aria-label="Pasos">
+        {VIEWS.map((v) => (
+          <li key={v.id} className={v.id === view ? 'current' : ''}>
+            {v.label}
+          </li>
+        ))}
+      </ol>
+
+      {view === 'mode' && (
+        <section>
+          <h2>¿Qué modo se juega?</h2>
+          <ul className="modes">
             {MODES.map(([id, label]) => (
-              <option key={id} value={id}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Mapa (opcional)
-          <input
-            list="maps"
-            value={state.map}
-            placeholder="Sin mapa"
-            onChange={(e) => setState((s) => ({ ...s, map: e.target.value }))}
-          />
-          <datalist id="maps">
-            {maps.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
-        </label>
-        <label>
-          Empieza
-          <select
-            value={state.firstTeam}
-            onChange={(e) => reset({ firstTeam: e.target.value as Team })}
-          >
-            <option value="A">Equipo A</option>
-            <option value="B">Equipo B</option>
-          </select>
-        </label>
-        <label>
-          Tu equipo
-          <select value={myTeam} onChange={(e) => setMyTeam(e.target.value as Team)}>
-            <option value="A">Equipo A</option>
-            <option value="B">Equipo B</option>
-          </select>
-        </label>
-      </div>
-      {mapNote && <p className="muted">Mapa: {mapNote}.</p>}
-
-      <div className="pool">
-        <input
-          value={tag}
-          placeholder="Tu tag (opcional) para usar solo tus brawlers"
-          aria-label="Tu tag"
-          onChange={(e) => setTag(e.target.value)}
-        />
-        <button type="button" className="secondary" onClick={loadPool} disabled={!tag.trim()}>
-          Cargar mis brawlers
-        </button>
-        {pool && (
-          <span className="muted">
-            {pool.name}: {pool.brawlers.length} brawlers{' '}
-            <button type="button" className="link" onClick={() => setPool(null)}>
-              quitar
-            </button>
-          </span>
-        )}
-        {poolError && <span className="error">{poolError}</span>}
-      </div>
-
-      <div className={`turn${step ? '' : ' done'}`} role="status">
-        {step
-          ? `Turno del equipo ${step.team}${step.team === myTeam ? ' (tú)' : ''}: ${
-              step.type === 'ban' ? 'banear' : 'elegir'
-            } un brawler (${state.actions.length + 1}/12)`
-          : 'Draft terminado'}
-      </div>
-
-      <div className="board">
-        {teamColumn('A')}
-        {teamColumn('B')}
-      </div>
-
-      <div className="actions">
-        <button
-          type="button"
-          className="secondary"
-          disabled={state.actions.length === 0}
-          onClick={() => setState(undoAction)}
-        >
-          Deshacer
-        </button>
-        <button type="button" className="secondary" onClick={() => reset()}>
-          Reiniciar
-        </button>
-      </div>
-
-      {step && (
-        <>
-          <h2>Sugerencias</h2>
-          <ol className="suggestions">
-            {suggestions.map((s) => (
-              <li key={s.brawler}>
-                <div>
-                  <strong>{titleCase(s.brawler)}</strong>
-                  <span className="muted"> · {s.score}</span>
-                  {s.reasons.length > 0 && <p className="reasons">{s.reasons.join('. ')}.</p>}
-                </div>
-                <button type="button" onClick={() => choose(s.brawler)}>
-                  {step.type === 'ban' ? 'Banear' : 'Elegir'}
+              <li key={id}>
+                <button
+                  type="button"
+                  className={state.mode === id ? '' : 'secondary'}
+                  onClick={() => {
+                    setState(newDraft(id));
+                    setAdvice(null);
+                    go('map');
+                  }}
+                >
+                  {label}
                 </button>
               </li>
             ))}
-            {suggestions.length === 0 && (
-              <li className="muted">Ningún brawler de tu lista está disponible.</li>
+          </ul>
+        </section>
+      )}
+
+      {view === 'map' && (
+        <section>
+          <h2>¿En qué mapa? ({template?.label})</h2>
+          {knownMaps.length > 0 && (
+            <ul className="modes">
+              {knownMaps.map((m) => (
+                <li key={m}>
+                  <button
+                    type="button"
+                    className={state.map === m ? '' : 'secondary'}
+                    onClick={() => setState((s) => ({ ...s, map: m }))}
+                  >
+                    {m}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            value={state.map}
+            placeholder="Escribe el nombre del mapa (opcional)"
+            aria-label="Mapa"
+            onChange={(e) => setState((s) => ({ ...s, map: e.target.value }))}
+          />
+          {template?.maps[state.map]?.note && (
+            <p className="muted">{template.maps[state.map]!.note}.</p>
+          )}
+          {nav('mode', 'bans', state.map.trim() ? 'Continuar' : 'Continuar sin mapa')}
+        </section>
+      )}
+
+      {view === 'bans' && (
+        <section>
+          <h2>Bans de la partida</h2>
+          <p>Agrega los brawlers que se banearon en cada equipo, en cualquier orden.</p>
+          {board('ban')}
+          {picker}
+          {nav('map', 'picks')}
+        </section>
+      )}
+
+      {view === 'picks' && (
+        <section>
+          <h2>Picks</h2>
+          <p>
+            Agrega los picks de ambos equipos en el orden que quieras. Puedes quitar cualquiera.
+          </p>
+          <div className="config">
+            <label>
+              Tu equipo
+              <select value={myTeam} onChange={(e) => setMyTeam(e.target.value as Team)}>
+                <option value="A">Equipo A</option>
+                <option value="B">Equipo B</option>
+              </select>
+            </label>
+          </div>
+          <div className="pool">
+            <input
+              value={tag}
+              placeholder="Tu tag (opcional) para sugerir solo con tus brawlers"
+              aria-label="Tu tag"
+              onChange={(e) => setTag(e.target.value)}
+            />
+            <button type="button" className="secondary" onClick={loadPool} disabled={!tag.trim()}>
+              Cargar mis brawlers
+            </button>
+            {pool && (
+              <span className="muted">
+                {pool.name}: {pool.brawlers.length} brawlers{' '}
+                <button type="button" className="link" onClick={() => setPool(null)}>
+                  quitar
+                </button>
+              </span>
             )}
-          </ol>
+            {poolError && <span className="error">{poolError}</span>}
+          </div>
+
+          {board('pick')}
+          {picker}
 
           <div className="ai">
             <button
               type="button"
-              className="secondary"
-              onClick={askAi}
-              disabled={!aiEnabled || aiBusy}
-              title={aiEnabled ? undefined : 'La IA no está configurada en este servidor'}
+              onClick={suggest}
+              disabled={busy || myPicks >= MAX_PICKS_PER_TEAM}
             >
-              {aiBusy ? 'Pensando…' : 'Pedir opinión de IA'}
+              {busy ? 'Pensando…' : 'Sugerir con IA'}
             </button>
-            {!aiEnabled && <span className="muted"> La IA no está configurada.</span>}
-            {aiError && <p className="error">{aiError}</p>}
+            <span className="muted">
+              {' '}
+              {myPicks >= MAX_PICKS_PER_TEAM
+                ? 'Tu equipo ya tiene sus picks.'
+                : `Sugiere el siguiente pick del equipo ${myTeam}.`}
+            </span>
+            {error && <p className="error">{error}</p>}
             {advice && (
               <div className="advice">
                 <p>{advice.summary}</p>
@@ -266,8 +371,16 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
                         <strong>{titleCase(r.brawler)}</strong>
                         <p className="reasons">{r.reason}</p>
                       </div>
-                      <button type="button" onClick={() => choose(r.brawler)}>
-                        {step.type === 'ban' ? 'Banear' : 'Elegir'}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setState((s) =>
+                            addFree(s, { type: 'pick', team: myTeam, brawler: r.brawler }),
+                          );
+                          setAdvice(null);
+                        }}
+                      >
+                        Elegir
                       </button>
                     </li>
                   ))}
@@ -275,24 +388,8 @@ export function DraftSimulator({ roster, aiEnabled }: { roster: string[]; aiEnab
               </div>
             )}
           </div>
-
-          <h2>Todos los brawlers</h2>
-          <input
-            value={filter}
-            placeholder="Buscar brawler"
-            aria-label="Buscar brawler"
-            onChange={(e) => setFilter(e.target.value)}
-          />
-          <ul className="roster">
-            {choices.map((b) => (
-              <li key={b}>
-                <button type="button" className="secondary" onClick={() => choose(b)}>
-                  {titleCase(b)}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
+          {nav('bans', null)}
+        </section>
       )}
     </div>
   );
