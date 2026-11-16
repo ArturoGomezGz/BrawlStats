@@ -1,16 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   MAX_BANS,
+  CLASS_LABEL,
   MAX_PICKS_PER_TEAM,
   TEMPLATES,
   addFree,
   bannedBrawlers,
+  classesOf,
+  getDraftData,
   newDraft,
   picksOf,
   removeBrawler,
   suggestFor,
+  triangleGaps,
   usedBrawlers,
   type DraftState,
   type StepType,
@@ -39,6 +43,20 @@ const titleCase = (name: string) =>
   name
     .toLowerCase()
     .replace(/(^|[\s.-])(\p{L})/gu, (_, sep: string, c: string) => sep + c.toUpperCase());
+
+function ClassChips({ brawler }: { brawler: string }) {
+  const classes = classesOf(brawler);
+  if (classes.length === 0) return null;
+  return (
+    <span className="class-chips">
+      {classes.map((c) => (
+        <span key={c} className={`class-chip c-${c}`}>
+          {CLASS_LABEL[c]}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 interface Target {
   type: StepType;
@@ -103,6 +121,13 @@ export function DraftSimulator({
   ];
   const used = usedBrawlers(state);
   const myPicks = picksOf(state, myTeam).length;
+  const mapTags = getDraftData().maps[state.map]?.tags ?? [];
+  const poolBrawlers = pool?.brawlers;
+  const methodTop = useMemo(
+    () =>
+      suggestFor(state, { type: 'pick', team: myTeam }, { roster, pool: poolBrawlers, limit: 5 }),
+    [state, myTeam, roster, poolBrawlers],
+  );
 
   function add(brawler: string) {
     const t: Target | null = view === 'bans' ? { type: 'ban', team: 'A' } : target;
@@ -190,6 +215,7 @@ export function DraftSimulator({
               <li key={i} className={`filled ${type}`}>
                 <Portrait image={images[brawler]} />
                 <span>{titleCase(brawler)}</span>
+                <ClassChips brawler={brawler} />
                 <button type="button" className="link" onClick={() => remove(brawler)}>
                   quitar
                 </button>
@@ -221,6 +247,13 @@ export function DraftSimulator({
           </h3>
           <p className="slot-title">Picks</p>
           {slots(team, 'pick')}
+          {picksOf(state, team).length > 0 && (
+            <p className="muted small">
+              {triangleGaps(picksOf(state, team)).length === 0
+                ? 'Composición completa: control, tanque o asesino y antitanque.'
+                : `Le falta: ${triangleGaps(picksOf(state, team)).join(', ')}.`}
+            </p>
+          )}
         </section>
       ))}
     </div>
@@ -359,6 +392,16 @@ export function DraftSimulator({
           {template?.maps[state.map]?.note && (
             <p className="muted">{template.maps[state.map]!.note}.</p>
           )}
+          {mapTags.length > 0 && (
+            <p className="muted">
+              Características del mapa para el método:{' '}
+              {mapTags.map((t) => (
+                <span key={t} className="class-chip">
+                  {t}
+                </span>
+              ))}
+            </p>
+          )}
           {nav('mode', 'bans', state.map.trim() ? 'Continuar' : 'Continuar sin mapa')}
         </section>
       )}
@@ -434,6 +477,40 @@ export function DraftSimulator({
           {bansPanel(false)}
           {board()}
           {picker}
+
+          <div className="method">
+            <h3>Sugerencias del método</h3>
+            <p className="muted small">
+              Calculadas con las clases de los brawlers, el modo, el mapa y lo que ya se eligió.
+              {mapTags.length > 0 && ` Mapa: ${mapTags.join(', ')}.`}
+            </p>
+            {myPicks >= MAX_PICKS_PER_TEAM ? (
+              <p className="muted">Tu equipo ya tiene sus picks.</p>
+            ) : (
+              <ol className="advice-list">
+                {methodTop.map((m) => (
+                  <li key={m.brawler}>
+                    <Portrait image={images[m.brawler]} />
+                    <div>
+                      <strong>{titleCase(m.brawler)}</strong> <ClassChips brawler={m.brawler} />
+                      <p className="reasons">{m.reasons.join('. ') || 'Buen nivel en este modo'}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setState((st) =>
+                          addFree(st, { type: 'pick', team: myTeam, brawler: m.brawler }),
+                        );
+                        setAdvice(null);
+                      }}
+                    >
+                      Elegir
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
 
           <div className="ai">
             <button
