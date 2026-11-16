@@ -41,3 +41,49 @@ export interface ModeTemplate {
   /** Ajustes por mapa: sumados al nivel del brawler en ese mapa. */
   maps: Record<string, { note?: string; adjust: Record<string, number> }>;
 }
+
+/** Clases del método de draft: el triángulo control, tanque/asesino y antitanque, más los especialistas. */
+export type DraftClass =
+  'control' | 'tank' | 'assassin' | 'antitank' | 'antiassassin' | 'support' | 'sniper' | 'thrower';
+
+/** Etiquetas de habilidad de un brawler. */
+export type BrawlerTag =
+  | 'hiper'
+  | 'stun'
+  | 'rompe-muros'
+  | 'area'
+  | 'rango'
+  | 'agua'
+  | 'dano-caja'
+  | 'escape'
+  | 'rebote'
+  | 'arbusto';
+
+/** Características de un mapa que cambian qué brawlers sirven. */
+export type MapTag = 'muros' | 'arbustos' | 'agua' | 'abierto' | 'lineas-largas';
+
+export interface BrawlerProfile {
+  /** Un brawler puede cumplir varias clases (Lou: control y antitanque, no antiasesino). */
+  classes: DraftClass[];
+  tags?: BrawlerTag[];
+}
+
+export interface MapProfile {
+  note?: string;
+  tags: MapTag[];
+}
+
+/** Cuántos puntos de afinidad da cada etiqueta de mapa a una clase o etiqueta de brawler. */
+export type MapAffinity = Record<MapTag, Partial<Record<DraftClass | BrawlerTag, number>>>;
+
+/**
+ * Datos editables del método. Cambian por temporada: se pueden reemplazar con `setDraftData`
+ * sin tocar el motor (por ejemplo, con lo que genere una IA o un panel).
+ */
+export interface DraftData {
+  /** Etiqueta libre, por ejemplo `2026-T3`. Solo informativa. */
+  season: string;
+  brawlers: Record<string, BrawlerProfile>;
+  maps: Record<string, MapProfile>;
+  mapAffinity: MapAffinity;
+}
