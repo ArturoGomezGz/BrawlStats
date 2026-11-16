@@ -1,0 +1,115 @@
+import type { BrawlerProfile } from '../types.js';
+
+/**
+ * Clasificación de brawlers según el método del video «Guía definitiva para draftear»
+ * (control / tanque y asesino / antitanque, más apoyo, francotirador y lanzador).
+ * Es una interpretación y cambia con cada temporada: edítala o reemplázala con `setDraftData`.
+ * Los nombres van en mayúsculas, como los devuelve Supercell. Si falta un brawler, no aporta clase.
+ */
+export const BRAWLER_PROFILES: Record<string, BrawlerProfile> = {
+  // Control y francotiradores
+  NANI: { classes: ['sniper', 'control'], tags: ['rango', 'stun', 'dano-caja'] },
+  BELLE: { classes: ['sniper', 'control'], tags: ['rango', 'dano-caja'] },
+  ANGELO: {
+    classes: ['sniper', 'control', 'antitank', 'antiassassin'],
+    tags: ['rango', 'agua', 'stun'],
+  },
+  PIPER: { classes: ['sniper', 'antitank'], tags: ['rango'] },
+  BROCK: { classes: ['sniper'], tags: ['rango', 'rompe-muros', 'dano-caja'] },
+  BEA: { classes: ['sniper'], tags: ['rango'] },
+  MANDY: { classes: ['sniper'], tags: ['rango', 'hiper', 'stun'] },
+  'R-T': { classes: ['sniper'], tags: ['rango', 'hiper', 'stun', 'dano-caja'] },
+  GUS: { classes: ['sniper', 'control'], tags: ['rango'] },
+  BYRON: { classes: ['sniper', 'support'], tags: ['rango', 'area', 'hiper'] },
+  COLT: { classes: ['control'], tags: ['rango', 'dano-caja'] },
+  GENE: { classes: ['control'], tags: ['stun'] },
+  RUFFS: { classes: ['control', 'antitank'], tags: ['hiper'] },
+  RICO: { classes: ['control', 'antitank'], tags: ['hiper', 'rebote', 'dano-caja'] },
+  AMBER: { classes: ['control'], tags: ['area'] },
+  MEEPLE: { classes: ['control'], tags: ['stun', 'hiper'] },
+  PAM: { classes: ['control'], tags: ['area'] },
+  BO: { classes: ['control'] },
+  STU: { classes: ['control'], tags: ['rompe-muros', 'dano-caja'] },
+  JANET: { classes: ['control'], tags: ['area'] },
+  PENNY: { classes: ['control'], tags: ['area', 'dano-caja'] },
+  JESSIE: { classes: ['control'], tags: ['area'] },
+  SQUEAK: { classes: ['control', 'thrower'], tags: ['area'] },
+  EVE: { classes: ['control'], tags: ['area', 'agua'] },
+  LOLA: { classes: ['control'] },
+  BONNIE: { classes: ['control'] },
+  'MR. P': { classes: ['control'] },
+  WILLOW: { classes: ['thrower', 'control', 'antitank', 'antiassassin'], tags: ['area'] },
+  OTIS: { classes: ['control', 'antitank', 'antiassassin'], tags: ['stun'] },
+  CROW: { classes: ['control', 'antitank', 'antiassassin'], tags: ['escape'] },
+  LOU: { classes: ['control', 'antitank'], tags: ['stun', 'hiper'] },
+  SANDY: { classes: ['control', 'antitank'], tags: ['hiper', 'arbusto'] },
+  NITA: { classes: ['control', 'antitank'], tags: ['hiper', 'area', 'arbusto'] },
+  SIRIUS: { classes: ['thrower', 'control'] },
+
+  // Antitanques
+  COLETTE: { classes: ['antitank', 'sniper'], tags: ['stun', 'rompe-muros'] },
+  SURGE: { classes: ['antitank'], tags: ['stun'] },
+  CLANCY: { classes: ['antitank'], tags: ['area'] },
+  GALE: { classes: ['antitank'], tags: ['stun', 'hiper'] },
+  CHESTER: { classes: ['antitank'], tags: ['hiper'] },
+  TARA: { classes: ['antitank'], tags: ['hiper'] },
+  EMZ: { classes: ['antitank'], tags: ['hiper'] },
+  SHELLY: { classes: ['antitank'], tags: ['stun'] },
+  CHARLIE: { classes: ['antitank'], tags: ['stun'] },
+  SPIKE: { classes: ['antitank'], tags: ['stun'] },
+  CORDELIUS: { classes: ['antitank'], tags: ['stun'] },
+  MAISIE: { classes: ['antitank'], tags: ['stun', 'rango'] },
+  '8-BIT': { classes: ['antitank'], tags: ['area'] },
+  MEG: { classes: ['antitank'], tags: ['stun'] },
+  GRAY: { classes: ['support', 'antitank'], tags: ['stun', 'rompe-muros'] },
+
+  // Tanques
+  'EL PRIMO': { classes: ['tank'] },
+  DARRYL: { classes: ['tank'] },
+  FRANK: { classes: ['tank'], tags: ['rompe-muros'] },
+  ROSA: { classes: ['tank'] },
+  JACKY: { classes: ['tank'] },
+  BUSTER: { classes: ['tank'], tags: ['area'] },
+  HANK: { classes: ['tank'] },
+  DRACO: { classes: ['tank'], tags: ['hiper', 'rebote'] },
+  TRONK: { classes: ['tank'], tags: ['hiper'] },
+  ASH: { classes: ['tank'] },
+  DOUG: { classes: ['tank'] },
+  LILY: { classes: ['tank', 'assassin'] },
+  MINA: { classes: ['tank', 'assassin'], tags: ['stun'] },
+  FANG: { classes: ['tank', 'assassin'], tags: ['stun', 'area'] },
+  BULL: { classes: ['tank', 'assassin'], tags: ['hiper'] },
+  BIBI: { classes: ['tank', 'assassin'], tags: ['hiper', 'area'] },
+  SAM: { classes: ['tank', 'assassin'], tags: ['hiper', 'area'] },
+  KENJI: { classes: ['assassin', 'tank'], tags: ['hiper'] },
+
+  // Asesinos
+  MORTIS: { classes: ['assassin'], tags: ['hiper'] },
+  EDGAR: { classes: ['assassin'], tags: ['area'] },
+  OLLIE: { classes: ['assassin'], tags: ['hiper'] },
+  ALI: { classes: ['assassin'], tags: ['area', 'agua'] },
+  CARL: { classes: ['assassin'], tags: ['area', 'dano-caja'] },
+  GRIFF: { classes: ['assassin'], tags: ['area', 'rompe-muros', 'dano-caja'] },
+  MICO: { classes: ['assassin'], tags: ['area'] },
+  CHUCK: { classes: ['assassin'], tags: ['dano-caja'] },
+  GIGI: { classes: ['assassin'] },
+  MELODIE: { classes: ['assassin'], tags: ['escape'] },
+  LEON: { classes: ['assassin'] },
+  SHADE: { classes: ['assassin'] },
+  BUZZ: { classes: ['assassin'] },
+
+  // Apoyo
+  POCO: { classes: ['support'], tags: ['area'] },
+  KIT: { classes: ['support'], tags: ['hiper'] },
+  MAX: { classes: ['support'], tags: ['hiper'] },
+  BERRY: { classes: ['support', 'thrower'], tags: ['area', 'stun'] },
+
+  // Lanzadores
+  BARLEY: { classes: ['thrower'], tags: ['hiper', 'dano-caja'] },
+  DYNAMIKE: { classes: ['thrower'], tags: ['stun', 'dano-caja'] },
+  TICK: { classes: ['thrower'], tags: ['area'] },
+  SPROUT: { classes: ['thrower'] },
+  GROM: { classes: ['thrower'] },
+  'LARRY & LAWRIE': { classes: ['thrower'] },
+  YUYU: { classes: ['thrower'] },
+};

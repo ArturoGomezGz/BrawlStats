@@ -1,6 +1,7 @@
 import { roleOf, ROLE_LABEL } from './data/roles.js';
 import { COMMON_COUNTERS, COMMON_SYNERGIES, DEFAULT_TIER, TEMPLATES } from './data/templates.js';
 import { DEFAULT_FORMAT, type DraftFormat } from './format.js';
+import { methodRules } from './rules.js';
 import { currentStep, picksOf, usedBrawlers } from './state.js';
 import type { DraftState, ModeTemplate, Role, Step, Suggestion, Team } from './types.js';
 
@@ -65,6 +66,7 @@ function scorePick(
   team: Team,
   available: string[],
   enemyPicksLeft: number,
+  totalPicks: number,
 ): Suggestion {
   const allies = picksOf(state, team);
   const enemies = picksOf(state, other(team));
@@ -126,6 +128,17 @@ function scorePick(
     }
   }
 
+  const rules = methodRules({
+    state,
+    brawler,
+    allies,
+    enemies,
+    isFirstPick: allies.length + enemies.length === 0,
+    isLastPick: allies.length + enemies.length === totalPicks - 1,
+  });
+  score += rules.points;
+  reasons.push(...rules.reasons);
+
   return { brawler, score: Math.round(score * 10) / 10, reasons };
 }
 
@@ -179,7 +192,7 @@ export function suggestFor(state: DraftState, step: Step, options: SuggestOption
   const enemyPicksLeft = Math.max(0, picksPerTeam - picksOf(state, other(step.team)).length);
   const scored = candidates.map((b) =>
     step.type === 'pick'
-      ? scorePick(state, template, b, step.team, available, enemyPicksLeft)
+      ? scorePick(state, template, b, step.team, available, enemyPicksLeft, picksPerTeam * 2)
       : scoreBan(state, template, b, step.team),
   );
   scored.sort((a, b) => b.score - a.score || a.brawler.localeCompare(b.brawler));
