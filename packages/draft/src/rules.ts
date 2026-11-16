@@ -179,3 +179,12 @@ export function methodRules(ctx: RuleContext): RuleResult {
     reasons: parts.flatMap((p) => p.reasons),
   };
 }
+
+/** Qué le falta a un equipo del triángulo de clases (control, tanque o asesino, antitanque). */
+export function triangleGaps(picks: string[]): string[] {
+  const gaps: string[] = [];
+  if (!hasClass(picks, 'control')) gaps.push('control');
+  if (!isAggressive(picks)) gaps.push('tanque o asesino');
+  if (!hasClass(picks, 'antitank')) gaps.push('antitanque');
+  return gaps;
+}

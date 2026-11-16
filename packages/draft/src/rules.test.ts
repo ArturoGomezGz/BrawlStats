@@ -7,6 +7,7 @@ import {
   newDraft,
   setDraftData,
   suggestFor,
+  triangleGaps,
   validateDraftData,
 } from './index.js';
 
@@ -112,5 +113,13 @@ describe('datos editables', () => {
     const bad = { ...getDraftData(), brawlers: { X: { classes: ['volador'] } } } as never;
     expect(validateDraftData(bad).join()).toContain('volador');
     expect(() => setDraftData(bad)).toThrow();
+  });
+});
+
+describe('composición', () => {
+  it('indica qué le falta al equipo del triángulo', () => {
+    expect(triangleGaps([])).toEqual(['control', 'tanque o asesino', 'antitanque']);
+    expect(triangleGaps(['AMBER', 'BULL', 'CHESTER'])).toEqual([]);
+    expect(triangleGaps(['AMBER'])).toEqual(['tanque o asesino', 'antitanque']);
   });
 });
